@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import nltk
-import os
 
 # nltk.download('vader_lexicon')
 

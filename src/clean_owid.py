@@ -1,6 +1,6 @@
 import pandas as pd
 
-df = pd.read_csv('data/raw/owid_cases_deaths.csv')
+df = pd.read_csv('data/raw/owid_covid_data.csv')
 
 df_countries = df[df['continent'].notna()].copy()
 

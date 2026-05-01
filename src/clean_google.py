@@ -2,7 +2,7 @@ import pandas as pd
 import pycountry
 import numpy as np
 
-df_mob = pd.read_csv('data/raw/google_mobility.csv', low_memory=False)
+df_mob = pd.read_csv('data/raw/Global_Mobility_Report.csv', low_memory=False)
 
 df_mob_national = df_mob[
     df_mob['sub_region_1'].isna() & 
