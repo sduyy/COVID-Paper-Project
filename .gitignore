@@ -1,0 +1,9 @@
+data/raw/
+data/processed/
+
+*.csv
+*.xlsx
+
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
