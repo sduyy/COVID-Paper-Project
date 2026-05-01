@@ -5,17 +5,17 @@ df_ox = pd.read_csv('data/raw/OxCGRT_compact_national_v1.csv')
 df_ox = df_ox[df_ox['Jurisdiction'] == 'NAT_TOTAL'].copy()
 
 policy_features = [
-    # Nhóm C: Hạn chế/Đóng cửa
+    # C: Hạn chế/Đóng cửa
     'C1M_School closing', 'C2M_Workplace closing', 'C3M_Cancel public events',
     'C4M_Restrictions on gatherings', 'C5M_Close public transport',
     'C6M_Stay at home requirements', 'C7M_Restrictions on internal movement',
     'C8EV_International travel controls',
     
-    # Nhóm H: Y tế công cộng
+    # H: Y tế công cộng
     'H1_Public information campaigns', 'H2_Testing policy', 'H3_Contact tracing',
     'H6M_Facial Coverings', 'H8M_Protection of elderly people',
     
-    # Nhóm E: Hỗ trợ kinh tế (Có thể giữ lại xem tác động tâm lý)
+    # E: Hỗ trợ kinh tế
     'E1_Income support', 'E2_Debt/contract relief'
 ]
 

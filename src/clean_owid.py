@@ -47,6 +47,7 @@ df_resampled[cols_to_resample] = df_resampled.groupby('code')[cols_to_resample].
 df_resampled = df_resampled.fillna(0)
 
 df_resampled['cases_lag_14'] = df_resampled.groupby('code')['new_cases_smoothed_per_million'].shift(14)
+df_resampled['deaths_lag_14'] = df_resampled.groupby('code')['new_deaths_smoothed_per_million'].shift(14)
 df_resampled['stringency_lag_21'] = df_resampled.groupby('code')['stringency_index'].shift(21)
 
 df_final = df_resampled.dropna().copy()

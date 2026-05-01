@@ -3,7 +3,10 @@ import numpy as np
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import nltk
 
-# nltk.download('vader_lexicon')
+try:
+    nltk.data.find('sentiment/vader_lexicon.zip')
+except LookupError:
+    nltk.download('vader_lexicon', quiet=True)
 
 def process_tweets():
     df_tweets = pd.read_csv('data/raw/vaccination_all_tweets.csv', low_memory=False)
@@ -12,11 +15,10 @@ def process_tweets():
     df_tweets['date'] = pd.to_datetime(df_tweets['date'], format='mixed').dt.floor('D')
     df_tweets = df_tweets.dropna(subset=['text', 'user_location'])
 
-    # Cập nhật thêm dictionary này tùy theo phạm vi nghiên cứu
+    # Dictionary, update based on research scope
     location_map = {
         'india': 'IND', 'delhi': 'IND', 'mumbai': 'IND', 'bengaluru': 'IND',
         
-        # Thêm hàng loạt các bang và thành phố lớn của Mỹ
         'usa': 'USA', 'united states': 'USA', 'new york': 'USA', 'california': 'USA',
         'texas': 'USA', 'florida': 'USA', 'washington': 'USA', 'chicago': 'USA',
         'los angeles': 'USA', 'boston': 'USA', 'atlanta': 'USA', 'miami': 'USA',
@@ -32,7 +34,7 @@ def process_tweets():
     def map_location_to_code(loc):
         loc_str = str(loc).lower()
         for key, code in location_map.items():
-            if key in loc_str: # Bắt keyword trực tiếp từ chuỗi chữ thường
+            if key in loc_str:
                 return code
         return np.nan
 

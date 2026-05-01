@@ -6,26 +6,68 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 import shap
 import matplotlib.pyplot as plt
 
-print("1. Đọc dữ liệu và Chuẩn bị Features...")
+
+
+# ===== DATA =====
+print("Reading data and Preparing features...")
 df = pd.read_csv('data/processed/ML_READY_DATASET.csv')
 df['date'] = pd.to_datetime(df['date'])
 df = df.sort_values(by=['code', 'date'])
 
-# Bỏ các cột không phải là Feature (như tên nước, ngày hiện tại, và mục tiêu)
 target = 'new_deaths_smoothed_per_million'
-cols_to_drop = [target, 'code', 'country', 'date']
+metadata = ['code', 'country', 'date']
+
+# Present data leakage
+leakage_cols = [
+    'new_cases_smoothed_per_million', 'stringency_index',
+    'C1M_School closing', 'C2M_Workplace closing', 'C3M_Cancel public events', 
+    'C4M_Restrictions on gatherings', 'C5M_Close public transport', 
+    'C6M_Stay at home requirements', 'C7M_Restrictions on internal movement', 
+    'C8EV_International travel controls', 'H1_Public information campaigns', 
+    'H2_Testing policy', 'H3_Contact tracing', 'H6M_Facial Coverings', 
+    'H8M_Protection of elderly people', 'E1_Income support', 'E2_Debt/contract relief',
+    'retail_and_recreation_percent_change_from_baseline', 
+    'grocery_and_pharmacy_percent_change_from_baseline', 
+    'parks_percent_change_from_baseline', 
+    'transit_stations_percent_change_from_baseline', 
+    'workplaces_percent_change_from_baseline', 
+    'residential_percent_change_from_baseline',
+    'daily_sentiment_avg', 'daily_tweet_volume'
+]
+
+cols_to_drop = metadata + [target] + leakage_cols
+
 X = df.drop(columns=cols_to_drop)
 y = df[target]
 
-print(f"Tổng số Features sử dụng: {X.shape[1]}")
+print(f"Total number of Features: {X.shape[1]}")
+# Check for leftovers leakage
+print(X.columns.tolist())
 
-print("\n2. Chia tập Train/Test theo THỜI GIAN (80/20)...")
-split_idx = int(len(df) * 0.8)
-X_train, X_test = X.iloc[:split_idx], X.iloc[split_idx:]
-y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
-print(f"Tập Train: {len(X_train)} ngày | Tập Test: {len(X_test)} ngày")
 
-print("\n3. Đang huấn luyện [Mô hình Baseline] - Random Forest...")
+
+# ===== TRAIN/TEST =====
+print("\nTrain/Test Splitting...")
+# Split by time (date, not rows): 80%
+unique_dates = df['date'].sort_values().unique()
+split_idx = int(len(unique_dates) * 0.8)
+cutoff_date = unique_dates[split_idx]
+print(f"Cut-off Date for Test: {pd.to_datetime(cutoff_date).date()}")
+
+train_df = df[df['date'] < cutoff_date]
+test_df = df[df['date'] >= cutoff_date]
+
+X_train = train_df.drop(columns=cols_to_drop)
+y_train = train_df[target]
+X_test = test_df.drop(columns=cols_to_drop)
+y_test = test_df[target]
+
+print(f"Train: {len(X_train)} rows | Test: {len(X_test)} rows")
+
+
+
+# ===== RANDOM FOREST =====
+print("\nTraining [Baseline Model] Random Forest...")
 rf_model = RandomForestRegressor(n_estimators=200, random_state=42, n_jobs=-1)
 rf_model.fit(X_train, y_train)
 rf_preds = rf_model.predict(X_test)
@@ -33,47 +75,58 @@ rf_preds = rf_model.predict(X_test)
 rf_rmse = np.sqrt(mean_squared_error(y_test, rf_preds))
 rf_mae = mean_absolute_error(y_test, rf_preds)
 
-print("\n4. Đang huấn luyện [Mô hình Sát thủ] - XGBoost...")
-xgb_model = xgb.XGBRegressor(n_estimators=200, learning_rate=0.05, max_depth=6, random_state=42)
+
+
+# ===== XGBOOST =====
+print("\nTraining XGBoost...")
+xgb_model = xgb.XGBRegressor(
+    n_estimators=300,        # Tăng số vòng học lên một chút
+    learning_rate=0.03,      # Nhưng bắt mô hình học chậm lại, thận trọng hơn
+    max_depth=4,             # Giảm độ sâu (từ 6 xuống 4) để tránh học vẹ
+    subsample=0.8,           # Mỗi vòng chỉ lấy 80% dữ liệu ngẫu nhiên
+    colsample_bytree=0.8,    # Mỗi vòng chỉ dùng 80% features để tạo sự đa dạng
+    reg_alpha=0.5,           # L1 Regularization: Phạt mạnh các biến không quan trọng
+    reg_lambda=1.0,          # L2 Regularization: Ngăn chặn trọng số quá lớn
+    random_state=42
+)
 xgb_model.fit(X_train, y_train)
 xgb_preds = xgb_model.predict(X_test)
 
 xgb_rmse = np.sqrt(mean_squared_error(y_test, xgb_preds))
 xgb_mae = mean_absolute_error(y_test, xgb_preds)
 
+
+
+# ===== EVALUATE =====
 print("\n" + "="*40)
-print("🏆 KẾT QUẢ SO SÁNH SAI SỐ")
+print("RESULTS")
 print("="*40)
 print(f"Random Forest  -> RMSE: {rf_rmse:.2f} | MAE: {rf_mae:.2f}")
 print(f"XGBoost        -> RMSE: {xgb_rmse:.2f} | MAE: {xgb_mae:.2f}")
 
-# Tính % cải thiện
 improvement = ((rf_rmse - xgb_rmse) / rf_rmse) * 100
 if improvement > 0:
-    print(f"✅ XGBoost vượt trội hơn Random Forest {improvement:.1f}%")
+    print(f"XGBoost is better than Random Forest by {improvement:.1f}%")
 else:
-    print(f"⚠️ Random Forest đang làm tốt hơn XGBoost. Cần tinh chỉnh thêm XGBoost!")
+    print(f"Random Forest is doing better than XGBoost")
 print("="*40)
 
-print("\n5. Đang chạy SHAP Explainer cho thuật toán thắng cuộc (XGBoost)...")
+
+
+# ===== SHAP =====
+print("\nRunning SHAP (XGBoost)...")
 explainer = shap.Explainer(xgb_model, X_train)
 shap_values = explainer(X_test)
 
-# Vẽ biểu đồ mức độ quan trọng
 plt.figure(figsize=(12, 10))
 
-# Vẽ SHAP plot
-# max_display=20: Chỉ hiện top 20 biến quan trọng nhất để tránh bị rối
+# max_display=20
 shap.summary_plot(shap_values, X_test, show=False, max_display=20)
 
-# Chỉnh sửa font chữ và tiêu đề
-plt.title("Phân tích tầm quan trọng của các yếu tố (SHAP Summary Plot)", fontsize=16, pad=20)
-plt.xlabel("SHAP Value (Tác động lên số ca tử vong)", fontsize=12)
+plt.title("Feature Importances (SHAP Summary Plot)", fontsize=16, pad=20)
+plt.xlabel("SHAP Value (Impact on Deaths)", fontsize=12)
 plt.yticks(fontsize=10)
 
-# Tự động căn chỉnh để không bị mất chữ ở rìa
 plt.tight_layout()
 
-# Lưu ảnh với độ phân giải cao (300 DPI là chuẩn in ấn khoa học)
 plt.savefig('shap_high_res.png', dpi=300, bbox_inches='tight')
-print("✅ Đã lưu ảnh chất lượng cao tại: 'shap_high_res.png'")
