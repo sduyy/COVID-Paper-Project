@@ -26,7 +26,6 @@ df_mob_selected = df_mob_selected.rename(columns={'country_region_code': 'code'}
 
 def convert_alpha2_to_alpha3(alpha2):
     try:
-        # Ép kiểu string để tránh lỗi với các giá trị float/NaN
         return pycountry.countries.get(alpha_2=str(alpha2).upper()).alpha_3
     except:
         return np.nan
@@ -46,9 +45,7 @@ df_mob_selected = df_mob_selected.groupby('code')[mobility_features].resample('D
 df_mob_selected = df_mob_selected.reset_index()
 
 for col in mobility_features:
-    # Điền nội suy lại cho những ngày trống vừa được sinh ra (nếu có)
     df_mob_selected[col] = df_mob_selected.groupby('code')[col].transform(lambda x: x.interpolate(method='linear')).fillna(0)
-    # Tiến hành shift an toàn
     df_mob_selected[f'{col}_lag_21'] = df_mob_selected.groupby('code')[col].shift(21)
 
 df_mob_final = df_mob_selected.dropna().copy()

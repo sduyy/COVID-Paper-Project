@@ -35,7 +35,7 @@ df_ox_selected[policy_features] = df_ox_selected[policy_features].fillna(0)
 df_ox_selected = df_ox_selected.set_index('Date')
 df_ox_resampled = df_ox_selected.groupby('CountryCode')[policy_features].resample('D').asfreq().reset_index()
 
-# Vì chính sách duy trì theo thời gian, ta dùng ffill cho các ngày thiếu
+# Vì chính sách duy trì theo thời gian dùng ffill cho các ngày thiếu
 df_ox_resampled[policy_features] = df_ox_resampled.groupby('CountryCode')[policy_features].ffill().fillna(0)
 
 for col in policy_features:

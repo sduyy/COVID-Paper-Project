@@ -36,14 +36,13 @@ df_selected = df_selected.set_index('date')
 
 cols_to_resample = [col for col in features_to_keep if col not in ['code', 'date']]
 
-# Ép lịch liên tục từng ngày ('D')
 df_resampled = df_selected.groupby('code')[cols_to_resample].resample('D').asfreq().reset_index()
 
 # Những ngày mới được sinh ra sẽ bị trống (NaN). 
-# Dùng ffill để kéo dài các thông tin tĩnh (tên nước, dân số, gdp, vaccine...) từ ngày hôm trước sang
+# Dùng ffill để kéo dài các thông tin tĩnh (tên nước, dân số, gdp, vaccine...) từ ngày hôm trước
 df_resampled[cols_to_resample] = df_resampled.groupby('code')[cols_to_resample].ffill()
 
-# Nếu vẫn còn ngày trống ở tận cùng phía trước (ví dụ do dịch chưa bùng), điền 0
+# Nếu vẫn còn ngày trống ở tận cùng phía trước điền 0
 df_resampled = df_resampled.fillna(0)
 
 df_resampled['cases_lag_14'] = df_resampled.groupby('code')['new_cases_smoothed_per_million'].shift(14)
